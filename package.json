@@ -1,0 +1,69 @@
+{
+  "name": "shieldos-ui",
+  "version": "4.2.1",
+  "description": "ShieldOS Antivirus & Endpoint Protection",
+  "main": "main.js",
+  "scripts": {
+    "start":       "electron .",
+    "build:win":   "electron-builder --win",
+    "build:mac":   "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all":   "electron-builder --win --mac --linux"
+  },
+  "dependencies": {
+    "electron": "^30.0.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^24.13.0"
+  },
+  "build": {
+    "appId":       "com.shieldos.app",
+    "productName": "ShieldOS",
+    "copyright":   "Copyright © 2024 ShieldOS",
+    "files": [
+      "**/*",
+      "!node_modules/.cache",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "../engine/dist/shieldos-engine",
+        "to":   "engine",
+        "filter": ["**/*"]
+      }
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon":   "assets/icon.ico",
+      "requestedExecutionLevel": "requireAdministrator",
+      "publisherName": "ShieldOS"
+    },
+    "nsis": {
+      "oneClick":         false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon":    "assets/icon.ico",
+      "uninstallerIcon":  "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "icon":   "assets/icon.icns",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "category": "public.app-category.utilities"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon":   "assets/icon.png",
+      "category": "Security",
+      "description": "Antivirus and endpoint protection"
+    }
+  }
+}

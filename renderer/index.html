@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; connect-src http://127.0.0.1:7734; style-src 'self' 'unsafe-inline';">
+  <title>ShieldOS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ══ Custom Titlebar ════════════════════════════════════════════════ -->
+  <div class="titlebar">
+    <div class="titlebar-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2L3 7v6c0 5.25 3.75 10.15 9 11.25C17.25 23.15 21 18.25 21 13V7L12 2z"/>
+        <polyline points="9 12 11 14 15 10"/>
+      </svg>
+      ShieldOS
+    </div>
+    <div class="titlebar-spacer"></div>
+    <div class="titlebar-controls">
+      <button onclick="shieldos.window.minimize()">&#x2015;</button>
+      <button onclick="shieldos.window.maximize()">&#x25A1;</button>
+      <button class="close" onclick="shieldos.window.close()">&#x2715;</button>
+    </div>
+  </div>
+
+  <!-- ══ Main Layout ════════════════════════════════════════════════════ -->
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <div class="nav-item active" data-page="dashboard">
+          <span class="nav-icon">⬡</span> Dashboard
+        </div>
+        <div class="nav-item" data-page="scan">
+          <span class="nav-icon">⟳</span> Scan
+        </div>
+        <div class="nav-item" data-page="realtime">
+          <span class="nav-icon">◉</span> Real-Time
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Manage</div>
+        <div class="nav-item" data-page="quarantine">
+          <span class="nav-icon">⊟</span> Quarantine <span id="nav-q-count" style="margin-left:auto;font-size:10px;color:var(--red);"></span>
+        </div>
+        <div class="nav-item" data-page="processes">
+          <span class="nav-icon">≡</span> Processes
+        </div>
+        <div class="nav-item" data-page="history">
+          <span class="nav-icon">⊞</span> History
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">System</div>
+        <div class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙</span> Settings
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="protection-badge protected" id="sidebar-status-badge">
+          <span class="badge-dot"></span>
+          <span id="sidebar-status-text">Protected</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- ══ Dashboard ═════════════════════════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle" id="dash-subtitle">Initialising engine…</div>
+          </div>
+          <div class="flex gap-8">
+            <button onclick="App.quickScan()">⟳ Quick Scan</button>
+            <button class="btn-primary" onclick="App.fullScan()">⊕ Full Scan</button>
+          </div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Files Scanned</div>
+            <div class="stat-value accent" id="stat-scanned">—</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Threats Blocked</div>
+            <div class="stat-value red" id="stat-threats">—</div>
+            <div class="stat-sub">Detected &amp; handled</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Quarantined</div>
+            <div class="stat-value yellow" id="stat-quarantined">—</div>
+            <div class="stat-sub">In vault</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Files / sec</div>
+            <div class="stat-value green" id="stat-fps">0</div>
+            <div class="stat-sub" id="stat-last-scan">—</div>
+          </div>
+        </div>
+
+        <!-- Scan workers -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Scan Workers</div>
+            <span class="text-dim mono" id="dash-scan-id" style="font-size:11px;"></span>
+          </div>
+          <div class="workers-grid" id="workers-grid">
+            <div class="worker-row" id="worker-SC-01">
+              <div class="worker-label"><span class="worker-id">SC-01</span><span class="worker-file">Idle</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+            </div>
+            <div class="worker-row" id="worker-SC-02">
+              <div class="worker-label"><span class="worker-id">SC-02</span><span class="worker-file">Idle</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+            </div>
+            <div class="worker-row" id="worker-SC-03">
+              <div class="worker-label"><span class="worker-id">SC-03</span><span class="worker-file">Idle</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+            </div>
+            <div class="worker-row" id="worker-SC-04">
+              <div class="worker-label"><span class="worker-id">SC-04</span><span class="worker-file">Idle</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-column bottom row -->
+        <div class="flex gap-12" style="align-items:flex-start;">
+          <!-- Live feed -->
+          <div class="card" style="flex:1;">
+            <div class="card-header">
+              <div class="card-title">Live Event Feed</div>
+            </div>
+            <div class="event-feed" id="event-feed"></div>
+          </div>
+
+          <!-- Protection layers -->
+          <div class="card" style="width:280px;flex-shrink:0;">
+            <div class="card-header">
+              <div class="card-title">Protection Layers</div>
+            </div>
+            <div class="layers-grid" id="layers-grid">
+              <!-- populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent threats -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Threats</div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th><th>Threat</th><th>Engine</th>
+                  <th>Severity</th><th>Action</th><th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="threats-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Scan ═══════════════════════════════════════════════════════ -->
+      <div class="page" id="page-scan">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Scan</div>
+            <div class="page-subtitle">Manual file and folder scanning</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Scan Target</div></div>
+          <div class="scan-options">
+            <div class="scan-path-row" style="flex:1;">
+              <input type="text" id="scan-path-input" placeholder="/path/to/scan" readonly>
+              <button onclick="App.browseScanFolder()">Browse</button>
+            </div>
+            <label class="flex gap-8" style="align-items:center;cursor:pointer;">
+              <input type="checkbox" id="scan-recursive" checked> Recursive
+            </label>
+            <button id="scan-start-btn" class="btn-primary" onclick="App.startScan()">▶ Start Scan</button>
+            <button id="scan-cancel-btn" onclick="App.cancelScan()" style="display:none;">✕ Cancel</button>
+          </div>
+        </div>
+
+        <div class="card" id="scan-progress-card" style="display:none;">
+          <div class="card-header">
+            <div class="card-title">Progress</div>
+            <span class="mono text-dim" style="font-size:11px;" id="scan-progress-label">0 / 0</span>
+          </div>
+          <div class="scan-progress-section">
+            <div class="progress-bar scan-big-progress">
+              <div class="progress-fill" id="scan-main-bar" style="width:0%"></div>
+            </div>
+            <div class="scan-counters">
+              <div class="scan-counter">
+                <span class="label">Scanned</span>
+                <span class="value" id="sc-scanned">0</span>
+              </div>
+              <div class="scan-counter">
+                <span class="label">Threats</span>
+                <span class="value red" id="sc-threats">0</span>
+              </div>
+              <div class="scan-counter">
+                <span class="label">Files/sec</span>
+                <span class="value" id="sc-fps">0</span>
+              </div>
+            </div>
+            <div class="mono text-dim" style="font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="sc-current-file">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Results</div>
+            <span class="text-dim" style="font-size:11px;" id="scan-result-count">0 entries</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th><th>Result</th><th>Threat</th>
+                  <th>Engine</th><th>Action</th><th>Worker</th>
+                </tr>
+              </thead>
+              <tbody id="scan-results-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Real-Time ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-realtime">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Real-Time Protection</div>
+            <div class="page-subtitle">Live file system monitoring</div>
+          </div>
+          <div class="flex gap-8">
+            <button id="rt-toggle-btn" class="btn-primary" onclick="App.toggleRealtime()">Pause Protection</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Status</div></div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Real-Time File Monitoring</div>
+              <div class="toggle-desc">Scans files as they are created or modified</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" id="rt-enabled-toggle" onchange="App.setRealtime(this.checked)">
+              <span class="toggle-track"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Watched Paths</div>
+            <button class="btn-sm" onclick="App.addWatchPath()">+ Add Path</button>
+          </div>
+          <div id="watch-paths-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Live Events</div></div>
+          <div class="event-feed" style="height:300px;" id="rt-event-feed"></div>
+        </div>
+      </div>
+
+      <!-- ══ Quarantine ════════════════════════════════════════════════ -->
+      <div class="page" id="page-quarantine">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Quarantine</div>
+            <div class="page-subtitle" id="q-subtitle">Loading…</div>
+          </div>
+          <button class="btn-danger btn-sm" onclick="App.deleteAllQuarantine()">Delete All</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>File</th><th>Threat</th><th>Severity</th>
+                  <th>Type</th><th>Quarantined</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="quarantine-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Processes ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-processes">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Running Processes</div>
+            <div class="page-subtitle">Scan all running process executables</div>
+          </div>
+          <button class="btn-primary" onclick="App.scanProcesses()">⟳ Scan Processes</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>PID</th><th>Name</th><th>Executable</th>
+                  <th>CPU%</th><th>Mem MB</th><th>Scan Result</th>
+                </tr>
+              </thead>
+              <tbody id="processes-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ History ════════════════════════════════════════════════════ -->
+      <div class="page" id="page-history">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Scan History</div>
+            <div class="page-subtitle" id="hist-subtitle">All scan events</div>
+          </div>
+          <button onclick="App.clearHistory()" class="btn-sm">Clear History</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th><th>File</th><th>Result</th>
+                  <th>Threat</th><th>Engine</th><th>Type</th>
+                </tr>
+              </thead>
+              <tbody id="history-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Settings ═══════════════════════════════════════════════════ -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <div><div class="page-title">Settings</div></div>
+          <button class="btn-primary" onclick="App.saveSettings()">Save Settings</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Cloud Scanning</div></div>
+          <label>VirusTotal API Key</label>
+          <div class="input-group">
+            <input type="password" id="cfg-vt-key" placeholder="Enter your VirusTotal API key">
+            <button onclick="App.toggleVTKeyVisibility()">Show</button>
+          </div>
+          <div class="text-dim" style="font-size:11px;margin-top:6px;">
+            Free key at <a href="#" onclick="shieldos.shell.openExternal('https://www.virustotal.com/gui/join-us')">virustotal.com</a>. Enables cloud hash lookup.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Scan Behaviour</div></div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Real-Time Protection</div>
+              <div class="toggle-desc">Monitor file system for new/modified files</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-realtime"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Scan Archives</div>
+              <div class="toggle-desc">Scan inside ZIP/RAR/7z archives</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-archives"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Scan Hidden Files</div>
+              <div class="toggle-desc">Include dot-files and hidden system files</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-hidden"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Auto-Quarantine Threats</div>
+              <div class="toggle-desc">Automatically quarantine detected threats</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-auto-quarantine"><span class="toggle-track"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Desktop Notifications</div>
+              <div class="toggle-desc">Show OS notifications for threats and scan completion</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-notifications"><span class="toggle-track"></span></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Heuristic Analysis</div></div>
+          <label>Detection Level: <span id="heur-level-label">Medium</span></label>
+          <input type="range" id="cfg-heuristics" min="0" max="3" step="1" value="1"
+            oninput="App.updateHeurLabel(this.value)">
+          <div class="flex" style="justify-content:space-between;font-size:10px;color:var(--text-dim);margin-top:4px;">
+            <span>Low</span><span>Medium</span><span>High</span><span>Paranoid</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Performance</div></div>
+          <label>Max File Size: <span id="maxsize-label">512 MB</span></label>
+          <input type="range" id="cfg-maxsize" min="10" max="2048" step="10" value="512"
+            oninput="App.updateMaxSizeLabel(this.value)">
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Scheduled Scan</div></div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Enable Daily Scan</div>
+              <div class="toggle-desc">Run a full scan of the home directory on a schedule</div>
+            </div>
+            <label class="toggle"><input type="checkbox" id="cfg-sched-enabled"><span class="toggle-track"></span></label>
+          </div>
+          <label>Scan Time</label>
+          <input type="time" id="cfg-sched-time" value="02:00" style="width:140px;">
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">YARA Rules</div></div>
+          <div class="flex gap-8">
+            <button onclick="App.reloadYARA()">⟳ Reload Rules</button>
+            <span class="text-dim" style="font-size:11px;align-self:center;" id="yara-rule-list">Loading…</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">Data</div></div>
+          <div class="flex gap-8">
+            <button onclick="App.clearHistory()">Clear Scan History</button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
